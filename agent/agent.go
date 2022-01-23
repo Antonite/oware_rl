@@ -73,10 +73,6 @@ func (a *Agent) Play() {
 		// Record for reward distribution
 		a.RecordMove(bestMove)
 
-		if bestValue > 0 && bestValue != 1000 && bestValue != -1000 {
-			fmt.Printf("chose exp. reward: %v, %v\n", bestValue, bestMove)
-		}
-
 		// Convert the move
 		nb, err := oware.NewS(bestMove)
 		if err != nil {

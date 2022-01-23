@@ -144,8 +144,29 @@ func (s *Storage) Replace(key string, cas gocb.Cas, state *OwareState) error {
 }
 
 func (s *Storage) Update(key string, state *OwareState) error {
-	_, err := s.collections[key[2:3]].Upsert(key, state, nil)
-	return err
+	c, exists := s.collections[key[2:3]]
+	if !exists {
+		panic("collection doesn't exist")
+	}
+
+	retry := true
+	for retry {
+		_, err := c.Upsert(key, state, nil)
+		if err == nil {
+			return nil
+		}
+
+		switch t := err.(type) {
+		case *gocb.TimeoutError:
+			fmt.Printf("update timeout %s\n", key)
+			time.Sleep(time.Second)
+		default:
+			fmt.Printf("fail to update - type of error\n: %v", t)
+			return err
+		}
+	}
+
+	return errors.New("failed to update. loop exited")
 }
 
 func (s *Storage) processRewards(workers int) {

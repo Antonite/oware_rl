@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Antonite/oware_rl/agent"
 	"github.com/Antonite/oware_rl/storage"
@@ -20,6 +21,7 @@ func main() {
 	}
 
 	for w := 1; w <= 1000; w++ {
+		time.Sleep(time.Millisecond * 100)
 		go agent.PlayForever(store, w)
 	}
 
