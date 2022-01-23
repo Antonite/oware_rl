@@ -28,7 +28,6 @@ func PlayForever(store *storage.Storage, id int) {
 	for {
 		a := new(store)
 		a.play()
-		fmt.Printf("game ended. worker: %v\n", id)
 	}
 }
 
@@ -112,7 +111,7 @@ func (a *Agent) play() {
 			a.p2Moves[bestMove] = true
 		}
 
-		if bestValue > 0 {
+		if bestValue > 0 && bestValue != 1000 && bestValue != -1000 {
 			fmt.Printf("chose exp. reward: %v, %v\n", bestValue, bestMove)
 		}
 
