@@ -19,8 +19,10 @@ func main() {
 		panic(err)
 	}
 
-	a := agent.New(store)
-	a.Play()
+	for w := 1; w <= 200; w++ {
+		a := agent.New(store)
+		go a.Play()
+	}
 
 	termChan := make(chan os.Signal)
 	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)

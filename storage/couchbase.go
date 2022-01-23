@@ -166,7 +166,6 @@ func (s *Storage) processRewards() {
 
 func (s *Storage) adjust(id int, reward int, moves <-chan string) {
 	for m := range moves {
-		fmt.Println("worker", id, "started  job", m)
 		if err := s.SafeAdjustReward(m, reward); err != nil {
 			fmt.Printf("failed to save reward: %s\n", m)
 			panic(err)

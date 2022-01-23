@@ -26,7 +26,6 @@ func New(store *storage.Storage) *Agent {
 
 func (a *Agent) Play() {
 	for a.board.Status == oware.InProgress {
-		fmt.Printf("s: %v\n", a.board)
 		sroot := a.board.ToString()
 		moves := a.board.GetValidMoves()
 		if len(moves) == 0 {
@@ -105,6 +104,10 @@ func (a *Agent) Play() {
 			a.p2Moves[bestMove] = true
 		}
 
+		if bestValue > 0 {
+			fmt.Printf("chose exp. reward: %v, %v\n", bestValue, bestMove)
+		}
+
 		// Convert the move
 		nb, err := oware.NewS(bestMove)
 		if err != nil {
@@ -113,7 +116,6 @@ func (a *Agent) Play() {
 		}
 
 		a.board = nb
-		fmt.Printf("e: %v\n", a.board)
 	}
 
 	if a.board.Status == oware.Tie {
@@ -157,7 +159,7 @@ func (a *Agent) ProcessPossibleMoves(moves []int) map[string]int {
 
 		childrenMap[cbs] = reward
 		state := &storage.OwareState{
-			Reward: 0,
+			Reward: reward,
 		}
 
 		if err := a.store.Update(cbs, state); err != nil {
