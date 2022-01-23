@@ -10,10 +10,9 @@ import (
 
 const (
 	// Not concerned about exposing these for this use case
-	user    = "oware"
-	pass    = "owarerl"
-	bucket  = "qlearn"
-	workers = 1000
+	user   = "oware"
+	pass   = "owarerl"
+	bucket = "qlearn"
 )
 
 type Storage struct {
@@ -27,7 +26,7 @@ type OwareState struct {
 	Children []string
 }
 
-func Init() (*Storage, error) {
+func Init(workers int) (*Storage, error) {
 	cluster, err := gocb.Connect(
 		"localhost",
 		gocb.ClusterOptions{
@@ -65,7 +64,7 @@ func Init() (*Storage, error) {
 	}
 
 	// Initialize workers
-	s.processRewards()
+	s.processRewards(workers)
 
 	return s, nil
 }
@@ -149,7 +148,7 @@ func (s *Storage) Update(key string, state *OwareState) error {
 	return err
 }
 
-func (s *Storage) processRewards() {
+func (s *Storage) processRewards(workers int) {
 	for w := 1; w <= workers/2; w++ {
 		go s.adjust(w, 1, s.RewardChan)
 	}

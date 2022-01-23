@@ -13,7 +13,7 @@ import (
 func main() {
 	fmt.Println("starting oware RL...")
 
-	store, err := storage.Init()
+	store, err := storage.Init(1000)
 	if err != nil {
 		fmt.Println("failed to initialize storage")
 		panic(err)

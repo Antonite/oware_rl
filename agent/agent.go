@@ -14,7 +14,7 @@ type Agent struct {
 	store   *storage.Storage
 }
 
-func new(store *storage.Storage) *Agent {
+func New(store *storage.Storage) *Agent {
 	b := oware.Initialize()
 	return &Agent{
 		board:   b,
@@ -26,12 +26,20 @@ func new(store *storage.Storage) *Agent {
 
 func PlayForever(store *storage.Storage, id int) {
 	for {
-		a := new(store)
-		a.play()
+		a := New(store)
+		a.Play()
 	}
 }
 
-func (a *Agent) play() {
+func (a *Agent) Board() *oware.Board {
+	return a.board
+}
+
+func (a *Agent) SetBoard(board *oware.Board) {
+	a.board = board
+}
+
+func (a *Agent) Play() {
 	for a.board.Status == oware.InProgress {
 		sroot := a.board.ToString()
 		moves := a.board.GetValidMoves()
@@ -40,57 +48,15 @@ func (a *Agent) play() {
 			return
 		}
 
-		var moveMap map[string]int
-		// Get possible moves from history
-		state, err := a.store.Get(sroot)
-		if err != nil {
-			// Entry doesn't exist
-			moveMap = a.processPossibleMoves(moves)
-			children := []string{}
-			for k := range moveMap {
-				children = append(children, k)
-			}
-			// Insert new record
-			if err := a.store.Update(sroot, &storage.OwareState{Reward: 0, Children: children}); err != nil {
-				panic(err)
-			}
-		} else if len(state.Children) == 0 {
-			// Children are empty
-			moveMap = a.processPossibleMoves(moves)
-			children := []string{}
-			for k := range moveMap {
-				children = append(children, k)
-			}
-			// Add children
-			if err := a.store.SafeAddChildren(sroot, children); err != nil {
-				panic(err)
-			}
-		} else {
-			// State and children exist, find out potential rewards
-			moveMap = make(map[string]int, len(state.Children))
-			for _, child := range state.Children {
-				cstate, err := a.store.Get(child)
-				if err != nil {
-					fmt.Printf("failed to get child: %s\n", child)
-					panic(err)
-				}
-
-				moveMap[child] = cstate.Reward
-			}
-		}
+		// Get possible moves with reward values
+		moveMap := a.ExploreCurrentMoves(moves, sroot)
 
 		// Decide on best move
 		bestValue := 0
 		bestMove := ""
 		for k, v := range moveMap {
 			// Ensure this move hasn't been played yet
-			played := false
-			if a.board.Player() == 0 {
-				_, played = a.p1Moves[k]
-			} else {
-				_, played = a.p2Moves[k]
-			}
-
+			played := a.MovePlayed(k)
 			if !played && (bestMove == "" || v > bestValue) {
 				bestMove = k
 				bestValue = v
@@ -105,11 +71,7 @@ func (a *Agent) play() {
 		}
 
 		// Record for reward distribution
-		if a.board.Player() == 0 {
-			a.p1Moves[bestMove] = true
-		} else {
-			a.p2Moves[bestMove] = true
-		}
+		a.RecordMove(bestMove)
 
 		if bestValue > 0 && bestValue != 1000 && bestValue != -1000 {
 			fmt.Printf("chose exp. reward: %v, %v\n", bestValue, bestMove)
@@ -125,6 +87,10 @@ func (a *Agent) play() {
 		a.board = nb
 	}
 
+	a.DistributeAwards()
+}
+
+func (a *Agent) DistributeAwards() {
 	if a.board.Status == oware.Tie {
 		// Skip reward distribution
 		return
@@ -143,6 +109,67 @@ func (a *Agent) play() {
 			a.store.PunishChan <- m
 		}
 	}
+}
+
+func (a *Agent) RecordMove(move string) {
+	if a.board.Player() == 0 {
+		a.p1Moves[move] = true
+	} else {
+		a.p2Moves[move] = true
+	}
+}
+
+func (a *Agent) MovePlayed(move string) bool {
+	played := false
+	if a.board.Player() == 0 {
+		_, played = a.p1Moves[move]
+	} else {
+		_, played = a.p2Moves[move]
+	}
+	return played
+}
+
+func (a *Agent) ExploreCurrentMoves(moves []int, sroot string) map[string]int {
+	var moveMap map[string]int
+	// Get possible moves from history
+	state, err := a.store.Get(sroot)
+	if err != nil {
+		// Entry doesn't exist
+		moveMap = a.processPossibleMoves(moves)
+		children := []string{}
+		for k := range moveMap {
+			children = append(children, k)
+		}
+		// Insert new record
+		if err := a.store.Update(sroot, &storage.OwareState{Reward: 0, Children: children}); err != nil {
+			panic(err)
+		}
+	} else if len(state.Children) == 0 {
+		// Children are empty
+		moveMap = a.processPossibleMoves(moves)
+		children := []string{}
+		for k := range moveMap {
+			children = append(children, k)
+		}
+		// Add children
+		if err := a.store.SafeAddChildren(sroot, children); err != nil {
+			panic(err)
+		}
+	} else {
+		// State and children exist, find out potential rewards
+		moveMap = make(map[string]int, len(state.Children))
+		for _, child := range state.Children {
+			cstate, err := a.store.Get(child)
+			if err != nil {
+				fmt.Printf("failed to get child: %s\n", child)
+				panic(err)
+			}
+
+			moveMap[child] = cstate.Reward
+		}
+	}
+
+	return moveMap
 }
 
 func (a *Agent) processPossibleMoves(moves []int) map[string]int {
