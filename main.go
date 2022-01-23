@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Antonite/oware_rl/agent"
 	"github.com/Antonite/oware_rl/storage"
@@ -18,4 +21,9 @@ func main() {
 
 	a := agent.New(store)
 	a.Play()
+
+	termChan := make(chan os.Signal)
+	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
+	<-termChan
+	store.Close()
 }

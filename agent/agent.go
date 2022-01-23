@@ -99,32 +99,39 @@ func (a *Agent) Play() {
 		fmt.Printf("e: %v\n", a.board)
 	}
 
-	p1award := 0
-	p2award := 0
 	if a.board.Status == oware.Tie {
 		// Skip reward distribution
 		return
 	} else if a.board.Status == oware.Player1Won {
-		p1award = 1
-		p2award = -1
+		for _, m := range a.p1Moves {
+			a.store.RewardChan <- m
+		}
+		for _, m := range a.p2Moves {
+			a.store.PunishChan <- m
+		}
 	} else {
-		p1award = -1
-		p2award = 1
-	}
-
-	for _, m := range a.p1Moves {
-		if err := a.store.SafeAdjustReward(m, p1award); err != nil {
-			fmt.Printf("failed to save reward: %s\n", m)
-			panic(err)
+		for _, m := range a.p2Moves {
+			a.store.RewardChan <- m
+		}
+		for _, m := range a.p1Moves {
+			a.store.PunishChan <- m
 		}
 	}
 
-	for _, m := range a.p2Moves {
-		if err := a.store.SafeAdjustReward(m, p2award); err != nil {
-			fmt.Printf("failed to save reward: %s\n", m)
-			panic(err)
-		}
-	}
+	// for _, m := range a.p1Moves {
+	// 	a.store.RewardChan <- m
+	// 	// if err := a.store.SafeAdjustReward(m, p1award); err != nil {
+	// 	// 	fmt.Printf("failed to save reward: %s\n", m)
+	// 	// 	panic(err)
+	// 	// }
+	// }
+
+	// for _, m := range a.p2Moves {
+	// 	// if err := a.store.SafeAdjustReward(m, p2award); err != nil {
+	// 	// 	fmt.Printf("failed to save reward: %s\n", m)
+	// 	// 	panic(err)
+	// 	// }
+	// }
 }
 
 func (a *Agent) ProcessPossibleMoves(moves []int) map[string]int {

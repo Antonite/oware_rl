@@ -7,21 +7,24 @@ import (
 	"github.com/couchbase/gocb/v2"
 )
 
+const (
+	// Not concerned about exposing these for this use case
+	user    = "oware"
+	pass    = "owarerl"
+	bucket  = "qlearn"
+	workers = 1000
+)
+
 type Storage struct {
 	collections map[string]*gocb.Collection
+	RewardChan  chan string
+	PunishChan  chan string
 }
 
 type OwareState struct {
 	Reward   int
 	Children []string
 }
-
-const (
-	// Not concerned about exposing these for this use case
-	user   = "oware"
-	pass   = "owarerl"
-	bucket = "qlearn"
-)
 
 func Init() (*Storage, error) {
 	cluster, err := gocb.Connect(
@@ -52,7 +55,24 @@ func Init() (*Storage, error) {
 	collection1 := sc1.Collection("1")
 	collections["1"] = collection1
 
-	return &Storage{collections: collections}, nil
+	rewardChan := make(chan string)
+	punishChan := make(chan string)
+	s := &Storage{
+		collections: collections,
+		RewardChan:  rewardChan,
+		PunishChan:  punishChan,
+	}
+
+	// Initialize workers
+	s.processRewards()
+
+	return s, nil
+}
+
+func (s *Storage) Close() {
+	close(s.PunishChan)
+	close(s.RewardChan)
+	fmt.Println("Closed storage channels")
 }
 
 func (s *Storage) Get(key string) (*OwareState, error) {
@@ -132,4 +152,24 @@ func (s *Storage) Replace(key string, cas gocb.Cas, state *OwareState) error {
 func (s *Storage) Update(key string, state *OwareState) error {
 	_, err := s.collections[key[2:3]].Upsert(key, state, nil)
 	return err
+}
+
+func (s *Storage) processRewards() {
+	for w := 1; w <= workers/2; w++ {
+		go s.adjust(w, 1, s.RewardChan)
+	}
+
+	for w := 1; w <= workers/2; w++ {
+		go s.adjust(w, -1, s.PunishChan)
+	}
+}
+
+func (s *Storage) adjust(id int, reward int, moves <-chan string) {
+	for m := range moves {
+		fmt.Println("worker", id, "started  job", m)
+		if err := s.SafeAdjustReward(m, reward); err != nil {
+			fmt.Printf("failed to save reward: %s\n", m)
+			panic(err)
+		}
+	}
 }
