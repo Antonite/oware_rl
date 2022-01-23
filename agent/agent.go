@@ -179,7 +179,10 @@ func (a *Agent) processPossibleMoves(moves []int) map[string]int {
 
 		cbs := cb.ToString()
 		var reward int
-		if cb.Status == oware.InProgress || cb.Status == oware.Tie {
+		if cb.Status == oware.InProgress {
+			player := (cb.Player() + 1) % 2
+			reward = cb.Scores()[player]
+		} else if cb.Status == oware.Tie {
 			reward = 0
 		} else if cb.CurrentPlayerWon() {
 			reward = 1000
@@ -194,7 +197,7 @@ func (a *Agent) processPossibleMoves(moves []int) map[string]int {
 
 		if err := a.store.Update(cbs, state); err != nil {
 			fmt.Printf("failed to insert a child: %v\n", err)
-			panic(err)
+			panic(err) // TODO handle
 		}
 	}
 

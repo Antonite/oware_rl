@@ -16,6 +16,10 @@ github.com/Antonite/oware v0.0.0-20220123063337-b6f332464aa8 h1:Im2xXLzulBwUy0va
 github.com/Antonite/oware v0.0.0-20220123063337-b6f332464aa8/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
 github.com/Antonite/oware v0.0.0-20220123072252-a4471f5bd6f7 h1:FAEVAGM8O+ZnPPHe5jU9N5OD0ux/+cp47YigaUEIiCo=
 github.com/Antonite/oware v0.0.0-20220123072252-a4471f5bd6f7/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
+github.com/Antonite/oware v0.0.0-20220123215236-960d054ae974 h1:sVW+GI/zKQlBQCWY5AW5kB/Kg8eu6/cgEXtePWoSTgA=
+github.com/Antonite/oware v0.0.0-20220123215236-960d054ae974/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
+github.com/Antonite/oware v0.0.0-20220123220539-3b7123a375a7 h1:eusAF1/AnL478J1jGcK5IquZZzcnA/+c78J004wW2ys=
+github.com/Antonite/oware v0.0.0-20220123220539-3b7123a375a7/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
 github.com/Antonite/oware v1.0.0 h1:4nWsMVUdSBzjJ8os7rETtw+C678OtKp/O9KkbZmjTDk=
 github.com/Antonite/oware v1.0.0/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
 github.com/couchbase/gocb/v2 v2.3.5 h1:qgTqqpXWKBxGlBJPG2P6koZa201CrkXacZjjlU+9iOQ=
@@ -26,8 +30,12 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/golang/snappy v0.0.1 h1:Qgr9rKW7uDUkrbSmQeiDsGa8SjGyCOGtuasMWwvp2P4=
 github.com/golang/snappy v0.0.1/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
+github.com/golang/snappy v0.0.4 h1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=
+github.com/golang/snappy v0.0.4/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

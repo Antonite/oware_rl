@@ -21,7 +21,7 @@ func main() {
 	}
 
 	for w := 1; w <= 1000; w++ {
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 200)
 		go agent.PlayForever(store, w)
 	}
 
