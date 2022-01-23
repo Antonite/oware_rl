@@ -94,7 +94,7 @@ func (a *Agent) Play() {
 		// Can only repeat, must end game
 		if bestMove == "" {
 			a.board.ForceEndGame()
-			fmt.Println("forcefully ended game due to repetition: %s", sroot)
+			fmt.Printf("forcefully ended game due to repetition: %s\n", sroot)
 			continue
 		}
 
