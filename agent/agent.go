@@ -14,7 +14,7 @@ type Agent struct {
 	store   *storage.Storage
 }
 
-func New(store *storage.Storage) *Agent {
+func new(store *storage.Storage) *Agent {
 	b := oware.Initialize()
 	return &Agent{
 		board:   b,
@@ -24,7 +24,15 @@ func New(store *storage.Storage) *Agent {
 	}
 }
 
-func (a *Agent) Play() {
+func PlayForever(store *storage.Storage, id int) {
+	for {
+		a := new(store)
+		a.play()
+		fmt.Printf("game ended. worker: %v\n", id)
+	}
+}
+
+func (a *Agent) play() {
 	for a.board.Status == oware.InProgress {
 		sroot := a.board.ToString()
 		moves := a.board.GetValidMoves()
@@ -38,7 +46,7 @@ func (a *Agent) Play() {
 		state, err := a.store.Get(sroot)
 		if err != nil {
 			// Entry doesn't exist
-			moveMap = a.ProcessPossibleMoves(moves)
+			moveMap = a.processPossibleMoves(moves)
 			children := []string{}
 			for k := range moveMap {
 				children = append(children, k)
@@ -49,7 +57,7 @@ func (a *Agent) Play() {
 			}
 		} else if len(state.Children) == 0 {
 			// Children are empty
-			moveMap = a.ProcessPossibleMoves(moves)
+			moveMap = a.processPossibleMoves(moves)
 			children := []string{}
 			for k := range moveMap {
 				children = append(children, k)
@@ -138,7 +146,7 @@ func (a *Agent) Play() {
 	}
 }
 
-func (a *Agent) ProcessPossibleMoves(moves []int) map[string]int {
+func (a *Agent) processPossibleMoves(moves []int) map[string]int {
 	childrenMap := make(map[string]int, len(moves))
 	for _, m := range moves {
 		cb, err := a.board.Move(m)

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -95,31 +96,25 @@ func (s *Storage) Get(key string) (*OwareState, error) {
 	return &state, nil
 }
 
-func (s *Storage) GetAndLock(key string) (*OwareState, *gocb.Cas, error) {
-	r, err := s.collections[key[2:3]].GetAndLock(key, time.Second*15, nil)
-	for err == gocb.ErrDocumentLocked {
-		fmt.Printf("document locked: %s\n", key)
-		time.Sleep(time.Second)
-		r, err = s.collections[key[2:3]].GetAndLock(key, time.Second*15, nil)
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-
+func (s *Storage) GetAndLock(key string) (*OwareState, gocb.Cas, error) {
+	r, err := s.retryGetAndLock(key, time.Second*15, time.Second)
 	cas := r.Cas()
+	if cas == 0 {
+		panic(err)
+	}
 
 	var state OwareState
 	if err := r.Content(&state); err != nil {
 		fmt.Printf("failed to parse state. %v\n", err)
-		return nil, &cas, err
+		return nil, cas, err
 	}
 
-	return &state, &cas, nil
+	return &state, cas, nil
 }
 
 func (s *Storage) SafeAddChildren(key string, children []string) error {
 	state, cas, err := s.GetAndLock(key)
-	defer s.collections[key[2:3]].Unlock(key, *cas, nil)
+	defer s.unlock(key, cas)
 	if err != nil {
 		return err
 	}
@@ -129,19 +124,19 @@ func (s *Storage) SafeAddChildren(key string, children []string) error {
 	}
 
 	state.Children = children
-	return s.Replace(key, *cas, state)
+	return s.Replace(key, cas, state)
 }
 
 func (s *Storage) SafeAdjustReward(key string, adjustment int) error {
 	state, cas, err := s.GetAndLock(key)
-	defer s.collections[key[2:3]].Unlock(key, *cas, nil)
+	defer s.unlock(key, cas)
 	if err != nil {
-		fmt.Printf("failing to save award. key: %s, cas: %v\n", key, *cas)
+		fmt.Printf("failing to save award. key: %s, cas: %v\n", key, cas)
 		return err
 	}
 
 	state.Reward += adjustment
-	return s.Replace(key, *cas, state)
+	return s.Replace(key, cas, state)
 }
 
 func (s *Storage) Replace(key string, cas gocb.Cas, state *OwareState) error {
@@ -171,4 +166,45 @@ func (s *Storage) adjust(id int, reward int, moves <-chan string) {
 			panic(err)
 		}
 	}
+}
+
+func (s *Storage) unlock(key string, cas gocb.Cas) {
+	if cas == 0 {
+		return
+	}
+
+	c, exists := s.collections[key[2:3]]
+	if !exists {
+		fmt.Printf("FAILED TO UNLOCK. %s, %v", key, cas)
+		panic("collection doesn't exist")
+	}
+
+	c.Unlock(key, cas, nil)
+}
+
+func (s *Storage) retryGetAndLock(key string, timeout time.Duration, backoff time.Duration) (*gocb.GetResult, error) {
+	c, exists := s.collections[key[2:3]]
+	if !exists {
+		fmt.Printf("FAILED TO GET AND LOCK. %s", key)
+		panic("collection doesn't exist")
+	}
+
+	retry := true
+	for retry {
+		r, err := c.GetAndLock(key, timeout, nil)
+		if err == nil {
+			return r, nil
+		}
+
+		switch t := err.(type) {
+		case *gocb.TimeoutError:
+			fmt.Printf("get and lock timeout %s\n", key)
+			time.Sleep(backoff)
+		default:
+			fmt.Printf("fail to get and lock - type of error\n: %v", t)
+			return nil, err
+		}
+	}
+
+	return nil, errors.New("failed to retry and lock. loop exited")
 }

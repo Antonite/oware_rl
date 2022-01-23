@@ -19,9 +19,8 @@ func main() {
 		panic(err)
 	}
 
-	for w := 1; w <= 200; w++ {
-		a := agent.New(store)
-		go a.Play()
+	for w := 1; w <= 1000; w++ {
+		go agent.PlayForever(store, w)
 	}
 
 	termChan := make(chan os.Signal)
