@@ -12,6 +12,8 @@ github.com/Antonite/oware v0.0.0-20220123042021-ac1120623e5a h1:CCQBbNheBES4ZysH
 github.com/Antonite/oware v0.0.0-20220123042021-ac1120623e5a/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
 github.com/Antonite/oware v0.0.0-20220123052702-d224ba4a7fdd h1:CTlbN3gnJEaOIl896EjtNbLve//lzPJqqWUz94c5uV4=
 github.com/Antonite/oware v0.0.0-20220123052702-d224ba4a7fdd/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
+github.com/Antonite/oware v0.0.0-20220123063337-b6f332464aa8 h1:Im2xXLzulBwUy0vaBAFpmjE5bx4qefpc8Smk+EVyEZc=
+github.com/Antonite/oware v0.0.0-20220123063337-b6f332464aa8/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
 github.com/Antonite/oware v1.0.0 h1:4nWsMVUdSBzjJ8os7rETtw+C678OtKp/O9KkbZmjTDk=
 github.com/Antonite/oware v1.0.0/go.mod h1:JkgvP4aqCH5QkB/MkZCf4+YUUt6ejaWr/1Qe7uVjv4M=
 github.com/couchbase/gocb/v2 v2.3.5 h1:qgTqqpXWKBxGlBJPG2P6koZa201CrkXacZjjlU+9iOQ=

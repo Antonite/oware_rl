@@ -9,16 +9,18 @@ import (
 
 type Agent struct {
 	board   *oware.Board
-	p1Moves []string
-	p2Moves []string
+	p1Moves map[string]bool
+	p2Moves map[string]bool
 	store   *storage.Storage
 }
 
 func New(store *storage.Storage) *Agent {
 	b := oware.Initialize()
 	return &Agent{
-		board: b,
-		store: store,
+		board:   b,
+		p1Moves: make(map[string]bool),
+		p2Moves: make(map[string]bool),
+		store:   store,
 	}
 }
 
@@ -75,17 +77,32 @@ func (a *Agent) Play() {
 		bestValue := 0
 		bestMove := ""
 		for k, v := range moveMap {
-			if bestMove == "" || v > bestValue {
+			// Ensure this move hasn't been played yet
+			played := false
+			if a.board.Player() == 0 {
+				_, played = a.p1Moves[k]
+			} else {
+				_, played = a.p2Moves[k]
+			}
+
+			if !played && (bestMove == "" || v > bestValue) {
 				bestMove = k
 				bestValue = v
 			}
 		}
 
+		// Can only repeat, must end game
+		if bestMove == "" {
+			a.board.ForceEndGame()
+			fmt.Println("forcefully ended game due to repetition: %s", sroot)
+			continue
+		}
+
 		// Record for reward distribution
 		if a.board.Player() == 0 {
-			a.p1Moves = append(a.p1Moves, bestMove)
+			a.p1Moves[bestMove] = true
 		} else {
-			a.p2Moves = append(a.p2Moves, bestMove)
+			a.p2Moves[bestMove] = true
 		}
 
 		// Convert the move
@@ -103,35 +120,20 @@ func (a *Agent) Play() {
 		// Skip reward distribution
 		return
 	} else if a.board.Status == oware.Player1Won {
-		for _, m := range a.p1Moves {
+		for m := range a.p1Moves {
 			a.store.RewardChan <- m
 		}
-		for _, m := range a.p2Moves {
+		for m := range a.p2Moves {
 			a.store.PunishChan <- m
 		}
 	} else {
-		for _, m := range a.p2Moves {
+		for m := range a.p2Moves {
 			a.store.RewardChan <- m
 		}
-		for _, m := range a.p1Moves {
+		for m := range a.p1Moves {
 			a.store.PunishChan <- m
 		}
 	}
-
-	// for _, m := range a.p1Moves {
-	// 	a.store.RewardChan <- m
-	// 	// if err := a.store.SafeAdjustReward(m, p1award); err != nil {
-	// 	// 	fmt.Printf("failed to save reward: %s\n", m)
-	// 	// 	panic(err)
-	// 	// }
-	// }
-
-	// for _, m := range a.p2Moves {
-	// 	// if err := a.store.SafeAdjustReward(m, p2award); err != nil {
-	// 	// 	fmt.Printf("failed to save reward: %s\n", m)
-	// 	// 	panic(err)
-	// 	// }
-	// }
 }
 
 func (a *Agent) ProcessPossibleMoves(moves []int) map[string]int {
