@@ -87,6 +87,7 @@ func (a *Agent) Play() {
 
 func (a *Agent) DistributeAwards() {
 	if a.board.Status == oware.Tie {
+		fmt.Printf("skipped distribution %s\n", a.board.ToString())
 		// Skip reward distribution
 		return
 	} else if a.board.Status == oware.Player1Won {
@@ -136,9 +137,7 @@ func (a *Agent) ExploreCurrentMoves(moves []int, sroot string) map[string]int {
 			children = append(children, k)
 		}
 		// Insert new record
-		if err := a.store.Insert(sroot, &storage.OwareState{Reward: 0, Children: children}); err != nil {
-			fmt.Printf("failed to insert new record: %s err: %v", sroot, err)
-		}
+		a.store.Insert(sroot, &storage.OwareState{Reward: 0, Children: children})
 	} else if len(state.Children) == 0 {
 		// Children are empty
 		moveMap = a.processPossibleMoves(moves)
@@ -148,7 +147,7 @@ func (a *Agent) ExploreCurrentMoves(moves []int, sroot string) map[string]int {
 		}
 		// Add children
 		if err := a.store.SafeAddChildren(sroot, children); err != nil {
-			fmt.Printf("failed to save children: %s", sroot)
+			fmt.Printf("failed to save children: %s\n", sroot)
 		}
 	} else {
 		// State and children exist, find out potential rewards
@@ -196,9 +195,7 @@ func (a *Agent) processPossibleMoves(moves []int) map[string]int {
 			Reward: reward,
 		}
 
-		if err := a.store.Insert(cbs, state); err != nil {
-			fmt.Printf("failed to insert a child: %v\n", err)
-		}
+		a.store.Insert(cbs, state)
 	}
 
 	return childrenMap

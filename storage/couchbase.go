@@ -195,14 +195,20 @@ func (s *Storage) Insert(key string, state *OwareState) error {
 			return nil
 		}
 
+		if err == gocb.ErrDocumentExists {
+			return err
+		}
+
+		switch err.(type) {
+		case *gocb.KeyValueError:
+			return err
+		default:
+		}
+
 		retries++
 		time.Sleep(time.Millisecond * 100 * time.Duration(retries))
 		if retries > 20 {
-			switch t := err.(type) {
-			default:
-				fmt.Printf("insert error #%v key %s type %v\n", retries, key, t)
-			}
-			return err
+			fmt.Printf("insert error #%v key %s\n", retries, key)
 		}
 	}
 
