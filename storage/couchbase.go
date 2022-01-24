@@ -24,6 +24,7 @@ type Storage struct {
 type OwareState struct {
 	Reward   int
 	Children []string
+	Games    int
 }
 
 func Init(workers int) (*Storage, error) {
@@ -152,6 +153,7 @@ func (s *Storage) SafeAdjustReward(key string, adjustment int) error {
 	}
 
 	state.Reward += adjustment
+	state.Games++
 	return s.Replace(key, cas, state)
 }
 
