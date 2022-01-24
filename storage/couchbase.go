@@ -30,8 +30,9 @@ func Init(workers int) (*Storage, error) {
 	cluster, err := gocb.Connect(
 		"localhost",
 		gocb.ClusterOptions{
-			Username: user,
-			Password: pass,
+			Username:             user,
+			Password:             pass,
+			CircuitBreakerConfig: gocb.CircuitBreakerConfig{Disabled: true},
 		})
 	if err != nil {
 		return nil, err
@@ -76,14 +77,33 @@ func (s *Storage) Close() {
 }
 
 func (s *Storage) Get(key string) (*OwareState, error) {
-	r, err := s.collections[key[2:3]].Get(key, nil)
-	for err == gocb.ErrDocumentLocked {
-		fmt.Printf("document locked: %s\n", key)
-		time.Sleep(time.Second)
-		r, err = s.collections[key[2:3]].Get(key, nil)
+	c, exists := s.collections[key[2:3]]
+	if !exists {
+		return nil, errors.New("collection doesn't exist")
 	}
-	if err != nil {
-		return nil, err
+
+	retry := true
+	retries := 1
+	var r *gocb.GetResult
+	var err error
+	for retry {
+		r, err = c.Get(key, nil)
+		if err == nil {
+			retry = false
+			continue
+		}
+
+		switch err.(type) {
+		case *gocb.KeyValueError:
+			return nil, err
+		default:
+		}
+
+		retries++
+		time.Sleep(time.Millisecond * 100 * time.Duration(retries))
+		if retries > 30 {
+			fmt.Printf("get error #%v key %s\n", retries, key)
+		}
 	}
 
 	var state OwareState
@@ -96,11 +116,8 @@ func (s *Storage) Get(key string) (*OwareState, error) {
 }
 
 func (s *Storage) GetAndLock(key string) (*OwareState, gocb.Cas, error) {
-	r, err := s.retryGetAndLock(key, time.Second*15, time.Second)
+	r, _ := s.retryGetAndLock(key, time.Second*15)
 	cas := r.Cas()
-	if cas == 0 {
-		panic(err)
-	}
 
 	var state OwareState
 	if err := r.Content(&state); err != nil {
@@ -139,29 +156,50 @@ func (s *Storage) SafeAdjustReward(key string, adjustment int) error {
 }
 
 func (s *Storage) Replace(key string, cas gocb.Cas, state *OwareState) error {
-	_, err := s.collections[key[2:3]].Replace(key, state, &gocb.ReplaceOptions{Cas: cas})
-	return err
-}
-
-func (s *Storage) Update(key string, state *OwareState) error {
 	c, exists := s.collections[key[2:3]]
 	if !exists {
-		panic("collection doesn't exist")
+		return errors.New("collection doesn't exist")
 	}
 
 	retry := true
+	retries := 1
 	for retry {
-		_, err := c.Upsert(key, state, nil)
+		_, err := c.Replace(key, state, &gocb.ReplaceOptions{Cas: cas})
 		if err == nil {
 			return nil
 		}
 
-		switch t := err.(type) {
-		case *gocb.TimeoutError:
-			fmt.Printf("update timeout %s\n", key)
-			time.Sleep(time.Second)
-		default:
-			fmt.Printf("fail to update - type of error\n: %v", t)
+		retries++
+		time.Sleep(time.Millisecond * 100 * time.Duration(retries))
+		if retries > 20 {
+			return err
+		}
+	}
+
+	return errors.New("failed to replace. loop exited")
+}
+
+func (s *Storage) Insert(key string, state *OwareState) error {
+	c, exists := s.collections[key[2:3]]
+	if !exists {
+		return errors.New("collection doesn't exist")
+	}
+
+	retry := true
+	retries := 1
+	for retry {
+		_, err := c.Insert(key, state, nil)
+		if err == nil {
+			return nil
+		}
+
+		retries++
+		time.Sleep(time.Millisecond * 100 * time.Duration(retries))
+		if retries > 20 {
+			switch t := err.(type) {
+			default:
+				fmt.Printf("insert error #%v key %s type %v\n", retries, key, t)
+			}
 			return err
 		}
 	}
@@ -183,7 +221,6 @@ func (s *Storage) adjust(id int, reward int, moves <-chan string) {
 	for m := range moves {
 		if err := s.SafeAdjustReward(m, reward); err != nil {
 			fmt.Printf("failed to save reward: %s\n", m)
-			panic(err)
 		}
 	}
 }
@@ -196,33 +233,29 @@ func (s *Storage) unlock(key string, cas gocb.Cas) {
 	c, exists := s.collections[key[2:3]]
 	if !exists {
 		fmt.Printf("FAILED TO UNLOCK. %s, %v", key, cas)
-		panic("collection doesn't exist")
 	}
 
 	c.Unlock(key, cas, nil)
 }
 
-func (s *Storage) retryGetAndLock(key string, timeout time.Duration, backoff time.Duration) (*gocb.GetResult, error) {
+func (s *Storage) retryGetAndLock(key string, timeout time.Duration) (*gocb.GetResult, error) {
 	c, exists := s.collections[key[2:3]]
 	if !exists {
-		fmt.Printf("FAILED TO GET AND LOCK. %s", key)
-		panic("collection doesn't exist")
+		return nil, errors.New("collection doesn't exist")
 	}
 
 	retry := true
+	retries := 1
 	for retry {
 		r, err := c.GetAndLock(key, timeout, nil)
 		if err == nil {
 			return r, nil
 		}
 
-		switch t := err.(type) {
-		case *gocb.TimeoutError:
-			fmt.Printf("get and lock timeout %s\n", key)
-			time.Sleep(backoff)
-		default:
-			fmt.Printf("fail to get and lock - type of error\n: %v", t)
-			return nil, err
+		retries++
+		time.Sleep(time.Millisecond * 100 * time.Duration(retries))
+		if retries > 20 {
+			fmt.Printf("get and lock error #%v key %s\n", retries, key)
 		}
 	}
 

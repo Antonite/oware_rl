@@ -66,7 +66,6 @@ func (a *Agent) Play() {
 		// Can only repeat, must end game
 		if bestMove == "" {
 			a.board.ForceEndGame()
-			fmt.Printf("forcefully ended game due to repetition: %s\n", sroot)
 			continue
 		}
 
@@ -77,7 +76,7 @@ func (a *Agent) Play() {
 		nb, err := oware.NewS(bestMove)
 		if err != nil {
 			fmt.Printf("failed to convert board: %s\n", bestMove)
-			panic(err)
+			return
 		}
 
 		a.board = nb
@@ -137,8 +136,8 @@ func (a *Agent) ExploreCurrentMoves(moves []int, sroot string) map[string]int {
 			children = append(children, k)
 		}
 		// Insert new record
-		if err := a.store.Update(sroot, &storage.OwareState{Reward: 0, Children: children}); err != nil {
-			panic(err)
+		if err := a.store.Insert(sroot, &storage.OwareState{Reward: 0, Children: children}); err != nil {
+			fmt.Printf("failed to insert new record: %s err: %v", sroot, err)
 		}
 	} else if len(state.Children) == 0 {
 		// Children are empty
@@ -149,19 +148,21 @@ func (a *Agent) ExploreCurrentMoves(moves []int, sroot string) map[string]int {
 		}
 		// Add children
 		if err := a.store.SafeAddChildren(sroot, children); err != nil {
-			panic(err)
+			fmt.Printf("failed to save children: %s", sroot)
 		}
 	} else {
 		// State and children exist, find out potential rewards
 		moveMap = make(map[string]int, len(state.Children))
 		for _, child := range state.Children {
 			cstate, err := a.store.Get(child)
+			reward := 0
 			if err != nil {
 				fmt.Printf("failed to get child: %s\n", child)
-				panic(err)
+			} else {
+				reward = cstate.Reward
 			}
 
-			moveMap[child] = cstate.Reward
+			moveMap[child] = reward
 		}
 	}
 
@@ -174,7 +175,7 @@ func (a *Agent) processPossibleMoves(moves []int) map[string]int {
 		cb, err := a.board.Move(m)
 		if err != nil {
 			fmt.Printf("failed to make move: %v\n", err)
-			panic(err)
+			continue
 		}
 
 		cbs := cb.ToString()
@@ -195,9 +196,8 @@ func (a *Agent) processPossibleMoves(moves []int) map[string]int {
 			Reward: reward,
 		}
 
-		if err := a.store.Update(cbs, state); err != nil {
+		if err := a.store.Insert(cbs, state); err != nil {
 			fmt.Printf("failed to insert a child: %v\n", err)
-			panic(err) // TODO handle
 		}
 	}
 

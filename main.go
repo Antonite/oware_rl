@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
+	"sync"
 	"time"
 
 	"github.com/Antonite/oware_rl/agent"
@@ -20,13 +18,12 @@ func main() {
 		panic(err)
 	}
 
+	wg := sync.WaitGroup{}
 	for w := 1; w <= 1000; w++ {
+		wg.Add(1)
 		time.Sleep(time.Millisecond * 200)
 		go agent.PlayForever(store, w)
 	}
 
-	termChan := make(chan os.Signal)
-	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
-	<-termChan
-	store.Close()
+	wg.Wait()
 }
