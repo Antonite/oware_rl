@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/Antonite/oware"
-	"github.com/Antonite/oware_rl/agent"
+	"github.com/Antonite/oware_rl/agents/tableagent"
 	"github.com/Antonite/oware_rl/storage"
 )
 
@@ -30,7 +30,7 @@ func main() {
 		panic(err)
 	}
 
-	a := agent.New(store)
+	a := tableagent.New(store)
 	for a.Board().Status == oware.InProgress {
 		sroot := a.Board().ToString()
 		moves := a.Board().GetValidMoves()

@@ -1,1 +1,0 @@
-ps -ef | grep 'oware_rl' | grep -v grep | awk '{print $2}' | xargs -r kill
