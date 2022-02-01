@@ -9,4 +9,5 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	gonum.org/v1/gonum v0.9.3 // indirect
 )
