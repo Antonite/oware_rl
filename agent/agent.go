@@ -87,9 +87,12 @@ func (a *Agent) Play() {
 
 func (a *Agent) DistributeAwards() {
 	if a.board.Status == oware.Tie {
-		fmt.Printf("skipped distribution %s\n", a.board.ToString())
-		// Skip reward distribution
-		return
+		for m := range a.p1Moves {
+			a.store.PunishChan <- m
+		}
+		for m := range a.p2Moves {
+			a.store.PunishChan <- m
+		}
 	} else if a.board.Status == oware.Player1Won {
 		for m := range a.p1Moves {
 			a.store.RewardChan <- m
