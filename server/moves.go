@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Antonite/oware"
-	"github.com/Antonite/oware_rl/agents/tableagent"
+	"github.com/Antonite/oware_rl/qtable"
 )
 
 type MovesResponse struct {
@@ -46,7 +46,7 @@ func (s *Server) GetMovesHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getMoves(id string) ([]*MovesResponse, error) {
 	mresponse := []*MovesResponse{}
 
-	a := tableagent.New(s.store)
+	a := qtable.New(s.store)
 	b, err := oware.NewS(id)
 	if err != nil {
 		return mresponse, err
