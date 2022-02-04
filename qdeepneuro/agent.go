@@ -2,6 +2,7 @@ package qdeepneuro
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/Antonite/oware"
 )
@@ -44,5 +45,23 @@ func (a *agent) play() {
 	fmt.Printf("move 2 board: %v\n", board)
 
 	// Record for future learning
+	a.memory.actions <- &action{a.board, board, move}
+
+	time.Sleep(time.Second * 5)
+
+	board, move, err = a.network.forward(oware.Initialize())
+	if err != nil {
+		fmt.Printf("failed to forward. err: %v\n", err)
+		return
+	}
+	fmt.Printf("move 1 board: %v\n", board)
+	board, move, err = a.network.forward(board)
+	if err != nil {
+		fmt.Printf("failed to forward. err: %v\n", err)
+		return
+	}
+
+	fmt.Printf("move 2 board: %v\n", board)
+
 	a.memory.actions <- &action{a.board, board, move}
 }

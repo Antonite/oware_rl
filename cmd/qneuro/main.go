@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/Antonite/oware_rl/qdeepneuro"
 )
@@ -11,4 +12,6 @@ func main() {
 
 	l := qdeepneuro.NewLeaner()
 	l.Learn()
+
+	time.Sleep(time.Minute)
 }

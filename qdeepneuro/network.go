@@ -13,8 +13,8 @@ import (
 
 const (
 	inputCount  int = 15
-	weightCount int = 16
-	outputCount int = 6
+	weightCount int = 11
+	outputCount int = 1
 )
 
 type network struct {
@@ -66,57 +66,79 @@ func (n *network) bestMove(state *oware.Board) (int, error) {
 		return -1, errors.New("no valid moves found")
 	}
 
-	// Compute input layer
-	inputVector := computeInputs(state)
-	inputL := mat.NewDense(1, len(inputVector), inputVector)
-
-	// Seed the board through the neural network
-	_, _, outputL := n.internalNeuro(inputL)
-	// Apply Softmax function
-	max := softmax(outputL)
-
-	// Compute move probability
-	moveP := rand.Float64()
-	// Select move
-	valueSum := 0.0
-	values := max.RawMatrix().Data
-	if len(values) != 6 {
-		return -1, errors.New("incorrect number of outputs computed")
-	}
-	for i, v := range valid {
-		valueSum += values[i]
-		if valueSum >= moveP {
-			fmt.Printf("random value: %v\n", moveP)
-			fmt.Printf("move value: %v\n", values[i])
-			fmt.Printf("move taken: %v\n", v)
-			return v, nil
+	movesV := []float64{}
+	moveNum := 0
+	for _, m := range valid {
+		eb, err := state.Move(m)
+		if err != nil {
+			fmt.Printf("failed to make a move: %v err: %v\n", m, err)
+			return 0, err
 		}
+		// Compute input layer
+		inputVector := computeInputs(eb)
+		inputL := mat.NewDense(1, len(inputVector), inputVector)
+		// Seed the board through the neural network
+		_, _, outputL := n.internalNeuro(inputL)
+		if len(outputL.RawMatrix().Data) > 1 {
+			fmt.Printf("too many values were calculated for a move: %v position: %v\n", m, eb)
+			return 0, err
+		}
+		movesV = append(movesV, outputL.RawMatrix().Data[0])
+		moveNum++
 	}
 
-	return -1, errors.New("failed to find a valid move")
+	fmt.Printf("move vector: %v\n", movesV)
+	moveMat := mat.NewDense(moveNum, 1, movesV)
+	max := reverseSoftmax(moveMat)
+	fmt.Printf("move softmax: %v\n", max)
+	return valid[0], nil
+	// // Compute move probability
+	// moveP := rand.Float64()
+	// // Select move
+	// valueSum := 0.0
+	// values := max.RawMatrix().Data
+
+	// for i, v := range valid {
+	// 	valueSum += values[i]
+	// 	if valueSum >= moveP {
+	// 		fmt.Printf("random value: %v\n", moveP)
+	// 		fmt.Printf("move value: %v\n", values[i])
+	// 		fmt.Printf("move taken: %v\n", v)
+	// 		return v, nil
+	// 	}
+	// }
+
+	// return -1, errors.New("failed to find a valid move")
 }
 
 func (n *network) internalNeuro(inputs *mat.Dense) (*mat.Dense, *mat.Dense, *mat.Dense) {
 	// Apply W(i->1) weights
-	rawHidden := make([]float64, weightCount)
+	rawHidden := make([]float64, weightCount*inputs.RawMatrix().Rows)
 	hiddenL := mat.NewDense(inputs.RawMatrix().Rows, weightCount, rawHidden)
 	hiddenL.Mul(inputs, n.layer1Weights)
 
 	hiddenInput := mat.NewDense(inputs.RawMatrix().Rows, weightCount, rawHidden)
 	hiddenInput.Copy(hiddenL)
 	// Apply Hidden Layer Activation functions
-	applyActivations(hiddenL)
+	applyLeru(hiddenL)
 
 	// Apply W(1->o) weights
 	rawOutput := make([]float64, outputCount)
 	outputL := mat.NewDense(inputs.RawMatrix().Rows, outputCount, rawOutput)
 	outputL.Mul(hiddenL, n.layer2Weights)
+
 	return hiddenInput, hiddenL, outputL
 }
 
-func applyActivations(matrix *mat.Dense) {
+func applyLeru(matrix *mat.Dense) {
 	matrix.Apply(func(i int, j int, v float64) float64 {
 		return leru(v)
+	}, matrix)
+}
+
+func applyDerLeru(matrix *mat.Dense) {
+	matrix.Apply(func(i int, j int, v float64) float64 {
+		return derLeru(v)
 	}, matrix)
 }
 
@@ -152,6 +174,23 @@ func softmax(matrix *mat.Dense) *mat.Dense {
 	var sum float64
 	matrix.Apply(func(i int, j int, v float64) float64 {
 		n := v - max
+		sum += math.Exp(n)
+		return n
+	}, matrix)
+
+	resultMatrix := mat.NewDense(matrix.RawMatrix().Rows, matrix.RawMatrix().Cols, nil)
+	resultMatrix.Apply(func(i int, j int, v float64) float64 {
+		return math.Exp(v) / sum
+	}, matrix)
+
+	return resultMatrix
+}
+
+func reverseSoftmax(matrix *mat.Dense) *mat.Dense {
+	max := mat.Max(matrix)
+	var sum float64
+	matrix.Apply(func(i int, j int, v float64) float64 {
+		n := (v - max) * -1
 		sum += math.Exp(n)
 		return n
 	}, matrix)
